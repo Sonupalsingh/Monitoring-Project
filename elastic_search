@@ -1,0 +1,410 @@
+####2. Add Elasticsearch Repository
+
+
+sudo rpm --import https://artifacts.elastic.co/GPG-KEY-elasticsearch
+
+
+
+
+##8.x is latest vertion which is running on 8. something 
+##Create a repo file:
+
+[elasticsearch-8.x]
+name=Elasticsearch repository for 8.x packages
+baseurl=https://artifacts.elastic.co/packages/8.x/yum
+enabled=1
+autorefresh=1
+gpgcheck=1
+gpgkey=https://artifacts.elastic.co/GPG-KEY-elasticsearch
+
+
+
+
+
+
+or 
+
+
+
+sudo rpm --import https://artifacts.elastic.co/GPG-KEY-elasticsearch
+
+cat <<EOF | sudo tee /etc/yum.repos.d/elasticsearch.repo
+[elasticsearch]
+name=Elasticsearch repository
+baseurl=https://artifacts.elastic.co/packages/8.x/yum
+gpgcheck=1
+gpgkey=https://artifacts.elastic.co/GPG-KEY-elasticsearch
+enabled=1
+autorefresh=1
+type=rpm-md
+EOF
+
+
+
+
+###3. Install Elasticsearch
+
+
+sudo dnf install elasticsearch-8.2.0  >  elasticsearch.output
+
+##4. Enable and Start Elasticsearch Service
+
+systemctl start elasticsearch
+systemctl enable elasticsearch
+
+sudo systemctl enable --now elasticsearch
+
+
+
+
+##Step 6: Configure Elasticsearch
+
+sudo vim /etc/elasticsearch/elasticsearch.yml
+
+
+network.host: 0.0.0.0        # allow external access
+http.port: 9200
+cluster.name: my-application
+node.name: node-1
+
+
+##password reset
+
+/usr/share/elasticsearch/bin/elasticsearch-reset-password -u elastic
+
+
+##Elasticsearch 8.x enables security (TLS & authentication) by default.
+###After first install, the system prints a password for the elastic superuser (check logs if you missed it):
+
+sudo cat /var/log/elasticsearch/elasticsearch.log | grep "generated password"
+
+
+###5. Verify Elasticsearch is Running
+
+
+curl -X GET "localhost:9200/"
+
+
+##6. Adjust Firewall (Optional)
+
+
+sudo firewall-cmd --add-port=9200/tcp --permanent
+sudo firewall-cmd --reload
+
+
+########################################
+Install Kibana on CentOS 
+
+#########################
+
+
+##Install Kibana on CentOS 9
+##Step 1: Add Kibana from Elastic repo
+
+
+
+sudo dnf install -y kibana
+
+
+
+##Step 2: Enable and start Kibana
+
+
+sudo systemctl daemon-reload
+sudo systemctl enable kibana
+sudo systemctl start kibana
+
+
+
+###Step 3: Configure Kibana
+
+sudo vim /etc/kibana/kibana.yml
+
+
+server.port: 5601
+server.host: "0.0.0.0"              # allow access from outside
+elasticsearch.hosts: ["https://localhost:9200"]
+elasticsearch.username: "kibana_system"
+elasticsearch.password: "YOUR_PASSWORD"
+
+
+
+
+###In Elasticsearch 8.x, kibana_system user has a password that is auto-generated at install time.
+###Check your Elasticsearch logs for it:
+
+sudo /usr/share/elasticsearch/bin/elasticsearch-reset-password -u kibana_system
+
+
+##Step 4: Open firewall port
+
+sudo firewall-cmd --add-port=5601/tcp --permanent
+sudo firewall-cmd --reload
+
+sudo systemctl stop firewalld 
+sudo systemctl disable firewalld 
+
+
+#############Elasticsearch.yaml#######################
+
+
+
+[root@Centos94 elasticsearch]# pwd
+/etc/elasticsearch
+[root@Centos94 elasticsearch]# cat elasticsearch.yml
+# ======================== Elasticsearch Configuration =========================
+#
+# NOTE: Elasticsearch comes with reasonable defaults for most settings.
+#       Before you set out to tweak and tune the configuration, make sure you
+#       understand what are you trying to accomplish and the consequences.
+#
+# The primary way of configuring a node is via this file. This template lists
+# the most important settings you may want to configure for a production cluster.
+#
+# Please consult the documentation for further information on configuration options:
+# https://www.elastic.co/guide/en/elasticsearch/reference/index.html
+#
+# ---------------------------------- Cluster -----------------------------------
+#
+# Use a descriptive name for your cluster:
+#
+#cluster.name: my-application
+#
+# ------------------------------------ Node ------------------------------------
+#
+# Use a descriptive name for the node:
+#
+#node.name: node-1
+#
+# Add custom attributes to the node:
+#
+#node.attr.rack: r1
+#
+# ----------------------------------- Paths ------------------------------------
+#
+# Path to directory where to store the data (separate multiple locations by comma):
+#
+path.data: /var/lib/elasticsearch
+#
+# Path to log files:
+#
+path.logs: /var/log/elasticsearch
+#
+# ----------------------------------- Memory -----------------------------------
+#
+# Lock the memory on startup:
+#
+#bootstrap.memory_lock: true
+#
+# Make sure that the heap size is set to about half the memory available
+# on the system and that the owner of the process is allowed to use this
+# limit.
+#
+# Elasticsearch performs poorly when the system is swapping the memory.
+#
+# ---------------------------------- Network -----------------------------------
+#
+# By default Elasticsearch is only accessible on localhost. Set a different
+# address here to expose this node on the network:
+#
+#network.host: 192.168.0.1
+#
+# By default Elasticsearch listens for HTTP traffic on the first free port it
+# finds starting at 9200. Set a specific HTTP port here:
+#
+#http.port: 9200
+#
+# For more information, consult the network module documentation.
+#
+# --------------------------------- Discovery ----------------------------------
+#
+# Pass an initial list of hosts to perform discovery when this node is started:
+# The default list of hosts is ["127.0.0.1", "[::1]"]
+#
+#discovery.seed_hosts: ["host1", "host2"]
+#
+# Bootstrap the cluster using an initial set of master-eligible nodes:
+#
+#cluster.initial_master_nodes: ["node-1", "node-2"]
+#
+# For more information, consult the discovery and cluster formation module documentation.
+#
+# --------------------------------- Readiness ----------------------------------
+#
+# Enable an unauthenticated TCP readiness endpoint on localhost
+#
+#readiness.port: 9399
+#
+# ---------------------------------- Various -----------------------------------
+#
+# Allow wildcard deletion of indices:
+#
+#action.destructive_requires_name: false
+
+#----------------------- BEGIN SECURITY AUTO CONFIGURATION -----------------------
+#
+# The following settings, TLS certificates, and keys have been automatically    
+# generated to configure Elasticsearch security features on 02-09-2025 13:19:17
+#
+# --------------------------------------------------------------------------------
+
+# Enable security features
+xpack.security.enabled: true
+
+xpack.security.enrollment.enabled: true
+
+# Enable encryption for HTTP API client connections, such as Kibana, Logstash, and Agents
+xpack.security.http.ssl:
+  enabled: true
+  keystore.path: certs/http.p12
+
+# Enable encryption and mutual authentication between cluster nodes
+xpack.security.transport.ssl:
+  enabled: true
+  verification_mode: certificate
+  keystore.path: certs/transport.p12
+  truststore.path: certs/transport.p12
+# Create a new cluster with the current node only
+# Additional nodes can still join the cluster later
+cluster.initial_master_nodes: ["Centos94.example.com"]
+
+# Allow HTTP API connections from anywhere
+# Connections are encrypted and require user authentication
+http.host: 0.0.0.0
+
+# Allow other nodes to join the cluster from anywhere
+# Connections are encrypted and mutually authenticated
+#transport.host: 0.0.0.0
+
+#----------------------- END SECURITY AUTO CONFIGURATION -------------------------
+[root@Centos94 elasticsearch]#
+
+
+
+
+#############rsyslog.conf#######################
+
+[root@Centos91 ~]# cd /etc/rsyslog.d/
+
+01-remote.conf  90-filebeat.conf
+[root@Centos91 rsyslog.d]# cat 01-remote.conf
+# Template to store logs in /var/log/<HOSTNAME>/<PROGRAM>.log
+$template RemoteLogs,"/var/log/%HOSTNAME%/%PROGRAMNAME%.log"
+
+# Apply template to all messages from remote hosts
+*.* ?RemoteLogs
+
+# Stop processing if already handled
+& ~
+
+[root@Centos91 rsyslog.d]# cat 90-filebeat.conf
+*.* @172.16.5.62:514  # UDP
+# or
+*.* @@172.16.5.62:514 # TCP
+
+[root@Centos91 rsyslog.d]#
+
+
+############Filebeat.yaml###############################
+
+[root@filebeat filebeat]# cat filebeat.yml
+filebeat.inputs:
+- type: log
+  paths:
+    - /var/log/messages    # This satisfies the input requirement but collects nothing
+    - /var/log/secure
+    - /var/log/kibana/*.log
+    - /var/log/httpd/*.log
+    - /var/log/*/*.log
+monitoring:
+  enabled: true
+  elasticsearch:
+    hosts: ["https://172.16.5.64:9200"]
+    username: "elastic"
+    password: "elastic"
+    ssl.verification_mode: none
+
+setup.kibana:
+  host: "http://172.16.5.132:5601"
+  ssl.verification_mode: none
+
+output.elasticsearch:
+  hosts: ["https://172.16.5.64:9200"]
+  username: "elastic"
+  password: "elastic"
+  ssl.verification_mode: none
+
+logging.level: info
+logging.to_files: true
+logging.files:
+  path: /var/log/filebeat
+  name: filebeat.log
+  keepfiles: 7
+  permissions: 0644
+
+[root@filebeat filebeat]#
+[root@filebeat filebeat]# pwd
+/etc/filebeat
+[root@filebeat filebeat]# cat filebeat.yml
+filebeat.inputs:
+- type: log
+  paths:
+    - /var/log/messages    # This satisfies the input requirement but collects nothing
+    - /var/log/secure
+    - /var/log/kibana/*.log
+    - /var/log/httpd/*.log
+    - /var/log/*/*.log
+monitoring:
+  enabled: true
+  elasticsearch:
+    hosts: ["https://172.16.5.64:9200"]
+    username: "elastic"
+    password: "elastic"
+    ssl.verification_mode: none
+
+setup.kibana:
+  host: "http://172.16.5.132:5601"
+  ssl.verification_mode: none
+
+output.elasticsearch:
+  hosts: ["https://172.16.5.64:9200"]
+  username: "elastic"
+  password: "elastic"
+  ssl.verification_mode: none
+
+logging.level: info
+logging.to_files: true
+logging.files:
+  path: /var/log/filebeat
+  name: filebeat.log
+  keepfiles: 7
+  permissions: 0644
+
+[root@filebeat filebeat]#
+
+
+
+##########################kibana.yaml#############################
+
+
+
+[root@kibana ~]# cat /etc/kibana/kibana.yml
+logging:
+  appenders:
+    file:
+      type: file
+      fileName: /var/log/kibana/kibana.log
+      layout:
+        type: json
+  root:
+    appenders:
+      - default
+      - file
+pid.file: /run/kibana/kibana.pid
+
+server.host: "0.0.0.0"
+elasticsearch.hosts: ["https://172.16.5.64:9200"]
+elasticsearch.username: "kibana_system"
+elasticsearch.password: "elastic"
+elasticsearch.ssl.verificationMode: none
+[root@kibana ~]#
